@@ -1,0 +1,180 @@
+---
+title: "Assignment-2"
+author: "Abhishek Kumar"
+date: "22/10/2020"
+output: html_document
+---
+
+
+#setting working Directory
+```{r working directory}
+setwd("/home/abhishek/Desktop/R assignment/Assignment 2")
+```
+
+## Task 1: Manipulation
+
+# 1. Loading data from directory
+
+```{r load data}
+
+load("triathlon2019.Rdata")
+dat = data.frame(triathlon) # Created dataframe data.
+head(dat)
+is.data.frame(dat)
+dim(dat)
+colnames(dat)
+
+```
+
+#  Explore data
+```{r data exploration and cleaning}
+
+# New column names
+new_col_names = c("Race_number","Triathlete_name", "Country_code", "Gender", 
+                  "Race_division", "Swim_time_InSecs", "TT_SwimToBike_InSecs"
+                  ,"Bike_time_InSecs", "TT_BikeToRun_InSecs","Run_time_InSecs"
+                  , "Total_time_InSecs" ) 
+
+# Distance related to swim, bike and run
+
+swim_distance_km = 3.862
+bike_distance_km = 180.246
+run_distance_km = 42.195
+total_distance = swim_distance_km + bike_distance_km + run_distance_km
+
+colnames(dat) = new_col_names # Updated column names to more understandable form.
+head(dat)
+
+# Removed rows with missing time.
+# is.na(columns) returns true for the position which has NA value in Overall column 
+dat = dat[is.na(triathlon$Overall) == FALSE, ] # Excluded position where value is False, which indicates NA
+str(dat)
+```
+
+
+# 3. Appended columns swim_Speed, bike_speed and run_speed(in km/h)
+```{r columnadded}
+# Added columns for speed for swimming, biking and running by dividing the total
+# distance traveled by total time taken in hr(converted using secs/3600).
+
+dat$Swim_speed_kmhr = swim_distance_km/(dat$Swim_time_InSecs/3600)
+dat$Bike_speed_kmhr = bike_distance_km/(dat$Bike_time_InSecs/3600)
+dat$Run_speed_kmhr = run_distance_km/(dat$Run_time_InSecs/3600)
+
+head(dat[,c("Swim_speed_kmhr", "Bike_speed_kmhr","Run_speed_kmhr")])
+```
+
+## Task 2: Analyzing/ Plotting
+
+# 1,2 Used pair plot
+```{r pairplot} 
+
+colvec = c("red","blue")
+names(colvec) = c("Male","Female")
+pairs(dat[, c("Swim_speed_kmhr", "Swim_time_InSecs")], col = colvec[dat$Gender])
+pairs(dat[,6:11], col = colvec[dat$Gender])
+
+```
+
+# 3 Overall time in transition
+```{r}
+#Total time calculated by adding the transition times for each athleted and then 
+# Divided by overall time
+
+total_transitiontime = apply(dat[,c("TT_SwimToBike_InSecs","TT_BikeToRun_InSecs")], 1, sum)
+dat$total_transitiontime_percentage = (total_transitiontime/dat$Total_time_InSecs)*100
+hist(dat$total_transitiontime_percentage, xlab = "Total transition time %", main = "TT time percentage for each athletes")
+
+# From histogram we can see that most number of athletes had overall transition time in between 1% and 2%.
+
+```
+
+# 4. Histograms 
+
+```{r histogram}
+
+par(mfrow = c(1,3))
+hist(dat$Swim_speed_kmhr, xlab = "Swim speed in km/hr", main = "Speed in km/hr")
+hist(dat$Bike_speed_kmhr, xlab = "Bike speed in km/hr", main = "Speed in km/hr")
+hist(dat$Run_speed_kmhr,  xlab = "Run speed in km/hr", main = "Speed in km/hr")
+par(mfrow = c(1,1))
+
+```
+
+# 5. Athletes from each country
+
+```{r tablecreation}
+# From the plot we can observe that USA has maximum numbers of athletes.
+table(dat$Country_code)
+barplot(table(dat$Country_code), las = 2, xlab = "Countries", ylab = "Number of athletes", cex.names = 0.7)
+```
+
+
+# 6. Finishing Time for each division
+
+```{r boxplot}
+# Used split to group the data of column Total_time_InSecs for each athlete by the categorical values in Race_division, and used boxplot to plot finishing time for each categories.
+
+par(mar = c(6,6,1,1), cex.axis = 0.7, mai=c(1,1,1,1))
+boxplot(split(dat$Total_time_InSecs, dat$Race_division), xlab = "Race Divisions", ylab = "Finishing Time",main = "Boxplot",  las = 2)
+
+```
+
+
+
+# 7.  Arranged finishin time for each race division based on the lowest to highest median finishing time in each category.
+
+```{r}
+
+# Used sapply to get the median of finishing time in each category
+# Applied order to get the list of indexes of ordered finishing time by median.
+# Rearranged finishing_time_by_division by this ordered positions list and plotted the data.
+par(mar = c(6,6,1,1), cex.axis = 0.7, mai=c(1,1,1,1))
+finishing_time_by_division = split(dat$Total_time_InSecs/3600, dat$Race_division)
+ord = order(sapply(finishing_time_by_division, median))
+boxplot(finishing_time_by_division[ord], main ="Ordered finishing time by Race Division", xlab= "Race-divisions ", ylab = " Finishing Time", las=2)
+```
+
+
+# 8 Customized y axis with whole number labels in hr.
+
+```{r}
+# axis was used to give customized y-axis labels.
+par(mar = c(6,6,1,1), cex.axis = 0.7, mai=c(1,1,1,1))
+boxplot(finishing_time_by_division[ord], main ="Ordered finishing time by Race Division", xlab= "Race-divisions ", ylab = " Finishing Time", yaxt = "n", las = 2)
+axis(2, at = seq(2,18, by = 1), labels = TRUE)
+
+```
+
+
+## Creativity
+
+Plotted data of speeds and total time take by male and females respectively to complete the race.
+
+```{r creativity}
+
+# 609 females participated in the race in comparison to 1649 males.
+# Used split to categorize finishing time for male and females.
+# From the plots below we cans see that in all race types females were slower than the males
+# overall females took longer time to complete the race.
+
+
+colvec2 = c("Red", "Blue")
+
+# Pie chart show distribution of males and females population.
+pie(table(dat$Gender), col = colvec2)
+legend("topleft", legend = c("Female","Male"), fill = colvec2, border=colvec2, cex =0.4)
+
+par(mfrow = c(2,2))
+boxplot(split(dat$Total_time_InSecs/3600, dat$Gender), col = colvec2, xlab = "Gender", ylab = "Finishing Time", main="Boxplot: Gender vs Finishing time", cex = 1)
+legend("topleft", legend = c("Female","Male"), fill = colvec2, border=colvec2, cex =0.4)
+boxplot(split(dat$Swim_speed_kmhr/3600, dat$Gender),col = colvec2, xlab = "Gender", ylab = "Swim speed", main="Boxplot: Gender vs Swim speed", cex = 1)
+legend("topleft", legend = c("Female","Male"), fill = colvec2, border=colvec2, cex =0.4)
+boxplot(split(dat$Bike_speed_kmhr/3600, dat$Gender),col = colvec2, xlab = "Gender", ylab = "Bike speed", main="Boxplot: Gender vs Bike speed", cex = 1)
+legend("topleft", legend = c("Female","Male"), fill = colvec2, border=colvec2, cex =0.4)
+boxplot(split(dat$Run_speed_kmhr/3600, dat$Gender), col = colvec2, xlab = "Gender", ylab = "Run speed", main="Boxplot: Gender vs Run speed", cex = 1)
+legend("topleft", legend = c("Female","Male"), fill = colvec2, border=colvec2, cex =0.4)
+par(mfrow = c(1,1))
+
+```
+
